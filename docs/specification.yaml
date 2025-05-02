@@ -1,0 +1,222 @@
+# Ciphr Specification
+metadata:
+  name: Ciphr
+  physics: Python CLI tool for cryptograhic and encoding operataions on data streams
+  version: 0.1.0
+  license: MIT
+  repository: https://github.com/hyonsoku/ciphr
+  author: hyonsoku
+
+overview:
+  description: |
+    Ciphr is a command-line tool ported from frohoff/ciphr, designed for applying cryptographic,
+    encoding, and transformation functions to data streams in a pipleine fashion.
+  features:
+    - Supports multiple transformation functions (e.g., hex, base64, sha1, aes128cbc).
+    - Processes input from stdin, files, or command-line arguments.
+    - Outputs results in binary, hex or base64 format.
+    - Stream-based processing for large data.
+    - Extensible architecture for adding new functions.
+
+command_line_interface:
+  usage: ciphr [INPUT] [FUNCTION...]
+  arguments:
+    INPUT:
+      description: Input data, file, or stdin
+      required: true
+      types:
+        - string:
+          description: Direct input string, encoded as UTF-8 to bytes
+          example: '"abc"'
+        - file:
+          description: File path prefixed with '@', read as bytes
+          example: '@input.txt'
+        - stdin:
+          description: Input from standard input, read as bytes, used with '-' or when omitted
+      format: Bytes (strings encoded as UTF-8 by default)
+      stream_processing:
+        chunk_size: 8192 bytes
+        description: Processes input in chunks for efficient handling of large data
+    FUNCTION:
+      description: Transformation function with optimal argument
+      format: FUNCTION[ARG]
+      examples:
+        - hex
+        - ~hex
+        - aes128cbc[key]
+        - xor[key]
+      required: false
+  options:
+    - name: --help
+      short: -h
+      description: Show help
+      type: "boolean"
+      default: false
+    - name: --interactive
+      short: -i
+      description: Run in interactive mode
+      type: boolean
+      default: false
+    - name: --output
+      short: -o
+      description: Output format
+      choices: [binary, hex, base64]
+      default: binary
+  output:
+    description: Output is written to stdout after applying all functions
+    destinations:
+      - stdout: Binary output by default
+    formats:
+      - binary: Raw bytes
+      - hex: Hexadecimal string (via `--output hex`)
+      - base64: Base64 string (via `--output base64`)
+    stream_processing:
+      description: Outputs data in chunks for large input, synchronized with input streaming
+
+supported_functions:
+  - name: hex
+    description: Encode bytes to hexadecimal
+    input: bytes
+    output: bytes (hex string)
+    example:
+      input: abc
+      output: 616263
+  - name: ~hex
+    description: Decode hexadecimal to bytes
+    input: bytes (hex string)
+    output: bytes
+    example:
+      input: 616263
+      output: abc
+  - name: base64
+    description: Encode bytes to Base64
+    input: bytes
+    output: bytes (Base64 string)
+    example:
+      input: abc
+      output: YWJj
+  - name: ~base64
+    description: Docode Base64 to bytes
+    input: bytes (Base64 string)
+    output: bytes
+    example:
+      input: YWJj
+      output: abc
+  - name: md5
+    description: Compute MD5 hash
+    input: bytes
+    output: bytes (16-byte hash)
+    example:
+      input: ""
+      output: d41d8cd98f00b204e9800998ecf8427e (hex)
+  - name: sha1
+    description: Compute SHA-1 hash
+    input: bytes
+    output: bytes (20-byte hash)
+    example:
+      input: abc
+      output: a9993e364706816aba3e25717850c26c9cd0d89d (hex)
+  - name: xor
+    description: Apply XOR with a key
+    input: bytes
+    argument: key (string or bytes)
+    output: bytes
+    example:
+      input: abc
+      key: abc
+      output: 000000 (hex)
+  - name: aes128cbc
+    description: Encrypt with AES-128-CBC
+    input: bytes
+    argument: key (string or bytes, at least 16 bytes)
+    output: bytes (IV + ciphertext)
+    example:
+      input: abc
+      key: super secret key
+      output: (varies, includes 16-byte IV)
+  - name: aes128cbc
+    description: Decrypt with AES-128-CBC
+    input: bytes (IV + ciphertext)
+    argument: key (string or bytes, at least 16 bytes)
+    output: bytes
+    example:
+      input: (output from aes128cbc)
+      key: super secret key
+      output: abc
+  - name: shl
+    description: Left shift each byte
+    input: bytes
+    argument: shift amount (integer)
+    output: bytes
+    example:
+      input: "\x01"
+      argument: 1
+      output: "\x02"
+  - name: shr
+    description: Right shift each byte
+    input: bytes
+    argument: shift amount (integer)
+    output: bytes
+    example:
+      input: "\x02"
+      argument: 1
+      output: "\x01"
+  - name: and
+    description: Bitwise AND with a key
+    input: bytes
+    argument: key (string or bytes)
+    output: bytes
+    example:
+      input: "\xFF"
+      key: "\x0F"
+      output: "\x0F"
+  - name: or
+    description: Bitwise OR with a key
+    input: bytes
+    argument: key (string or bytes)
+    output: bytes
+    example:
+      input: "\x00"
+      key: "\x0F"
+      output: "\x0F"
+
+error_handling:
+  errors:
+    - invalid_function:
+        description: Unknown function name
+        message: "Error: Unknown function: <name>"
+        exit_code: 1
+    - invalid_argument:
+        description: Invalid function argument (e.g., missing key)
+        message: "Error: <details>"
+        exit_code: 1
+    - invalid_input:
+        description: Malformed input (e.g., invalid hex or Base64)
+        message: "Error: <details>"
+        exit_code: 1
+    - key_length:
+        description: Insufficient key length for cryptographic functions
+        message: "Error: AES-128 key must be at least 16 bytes"
+        exit_code: 1
+
+extensibility:
+  description: |
+    New functions can be added by implementing them in ciphr/functions.py
+    and registering in get_function.
+  guidelines:
+    - Input: bytes
+    - Output: bytes
+    - Argument: Optional string or bytes
+    - Thread-safety: Functions should be stateless
+  examples:
+    - Add support for gzip compression
+    - Add Vigenère cipher
+    - Add custom encoding schemes
+
+security:
+  disclaimer: |
+    Ciphr is an experimental tool. It does not protect against side-channel attacks
+    (e.g., timing attacks) and is not suitable for production cryptographic system.
+  recommendations:
+    - Use secure key management for aes128cbc.
+    - Validate inputs for cryptographic functions.

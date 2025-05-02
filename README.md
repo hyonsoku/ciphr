@@ -5,11 +5,11 @@ A Python port of [frohoff/ciphr](https://github.com/frohoff/ciphr), a CLI tool f
 ## Status
 Work in progress. Currently in the initial setup phase.
 
-## Installation
-(To be added after release)
+## Documentation
 
-## Usage
-(To be added after implementation)
+- [Specification](docs/specification.yaml): Detailed specification of Ciphr's features and behavior, including CLI input/output details.
+- [Installation](docs/installation.md): How to install Ciphr.
+- [Examples](docs/examples.md): Usage examples
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
