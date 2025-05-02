@@ -179,6 +179,15 @@ supported_functions:
       input: "\x00"
       key: "\x0F"
       output: "\x0F"
+  - name: rot_n
+    description: Rotate alphabetic characters by a specified shift amount (default 13). Non-alphabetic characters are unchanged.
+    input: bytes
+    argument: shift ammount (integer, optional, default: 13)
+    output: bytes
+    example:
+      input: "Hello, World!"
+      argument: 13
+      output: "Uryyb, Jbeyq!"
 
 error_handling:
   errors:
